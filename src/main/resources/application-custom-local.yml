@@ -1,0 +1,34 @@
+server:
+  port: 13000
+
+spring:
+  config:
+    activate:
+      on-profile: local
+
+#  jpa:
+#    database: mysql
+#    properties.hibernate.dialect: org.hibernate.dialect.MySQL5InnoDBDialect
+#    hibernate:
+#      ddl-auto: none
+#    show-sql: true
+#    properties:
+#      hibernate.format_sql: true
+
+datasource:
+  wto:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    jdbc-url: jdbc:mysql://localhost:3306/trade_information?autoReconnect=true&useUnicode=true&useSSL=false&characterEncoding=utf-8&serverTimezone=Asia/Seoul
+    username: root
+    password: qhaoq1234!@
+  information:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    jdbc-url: jdbc:mysql://localhost:3306/information_schema?autoReconnect=true&useUnicode=true&useSSL=false&characterEncoding=utf-8&serverTimezone=Asia/Seoul
+    username: root
+    password: qhaoq1234!@
+
+
+#--- custom properties
+wto:
+  primary-key: bf57b989c3334428a93a28c401c8e88c
+  secondary-key: 6c3213e5742f467e914e7faf4cc8a9c5
