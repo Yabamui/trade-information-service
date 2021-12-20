@@ -5,10 +5,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import com.service.openapi.trade.wtoapiservice.entities.information.DatabaseSchemaColumns;
-import com.service.openapi.trade.wtoapiservice.entities.information.DatabaseSchemaKeyColumnUsage;
-import com.service.openapi.trade.wtoapiservice.repositories.information.DatabaseSchemaColumnsRepository;
-import com.service.openapi.trade.wtoapiservice.repositories.information.DatabaseSchemaKeyColumnUsageRepository;
+import com.service.openapi.trade.wtoapiservice.entities.information.*;
+import com.service.openapi.trade.wtoapiservice.repositories.information.*;
 import com.service.openapi.trade.wtoapiservice.utils.JsonConvert;
 import lombok.Builder;
 import lombok.Getter;
@@ -26,10 +24,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Slf4j
 class EntityGenerateServiceTest {
     @Autowired
-    private DatabaseSchemaColumnsRepository dataBaseSchemaColumnsRepository;
+    private DatabaseSchemaColumnsRepository columnsRepository;
 
     @Autowired
-    private DatabaseSchemaKeyColumnUsageRepository databaseSchemaKeyColumnUsageRepository;
+    private DatabaseSchemaKeyColumnUsageRepository keyColumnUsageRepository;
+
+    @Autowired
+    private DatabaseSchemaTableRepository tableRepository;
+
+    @Autowired
+    private DatabaseSchemaStatisticsRepository statisticsRepository;
 
     @Builder
     @Getter
@@ -59,7 +63,7 @@ class EntityGenerateServiceTest {
         }
 
         public static String toBuilderString(String tableClassName, List<EntityData> entityDataList) {
-            return  "@Builder" + LINE +
+            return "@Builder" + LINE +
                     "private" + SPACE +
                     tableClassName +
                     "(" +
@@ -81,10 +85,10 @@ class EntityGenerateServiceTest {
 
     @Test
     void getDatabaseSchemaColumns() {
-        final String tableSchema = "trade_information";
-        final String tableName = "naver_shopping_category";
+        final String tableSchema = "bomapp_member";
+        final String tableName = "my_data_org_schedule_time";
 
-        final List<DatabaseSchemaColumns> columnsList = dataBaseSchemaColumnsRepository.findAllByTableSchemaAndTableName(tableSchema, tableName);
+        final List<DatabaseSchemaColumns> columnsList = columnsRepository.findAllByTableSchemaAndTableName(tableSchema, tableName);
 
         assertThat(columnsList).isNotNull().isNotEmpty();
 
@@ -97,7 +101,7 @@ class EntityGenerateServiceTest {
             DatabaseSchemaKeyColumnUsage columnUsage = null;
 
             if (columns.getColumnKey().equals("MUL") || columns.getColumnKey().equals("UNI")) {
-                columnUsage = databaseSchemaKeyColumnUsageRepository
+                columnUsage = keyColumnUsageRepository
                         .findTopByTableSchemaAndTableNameAndColumnNameAndReferencedColumnNameIsNotNull(tableSchema, tableName, columns.getColumnName());
             }
 
@@ -233,5 +237,123 @@ class EntityGenerateServiceTest {
         }
 
         return converted.toString();
+    }
+
+    @Test
+    void generateDatabasesTableQuery() {
+        final String tableSchema = "bomapp_member";
+        final String tableName = "log_my_data_management_api_access";
+
+        final DatabaseSchemaTable table = this.tableRepository.findByTableSchemaAndTableName(tableSchema, tableName);
+
+        if (Objects.isNull(table)) {
+            return;
+        }
+
+        final List<DatabaseSchemaColumns> columnsList = this.columnsRepository.findAllByTableSchemaAndTableName(tableSchema, tableName);
+
+        if (CollectionUtils.isEmpty(columnsList)) {
+            return;
+        }
+
+        final StringBuilder builder = new StringBuilder("create table ").append(table.getTableName()).append("\n").append("(");
+
+    }
+
+    /**
+     * @Table(name = "my_data_insurance_basic",
+     *         uniqueConstraints = {
+     *                 @UniqueConstraint(name = "my_data_insurance_basic_u_index_case1", columnNames = {"insurance_id"})
+     *         },
+     *         indexes = {
+     *                 @Index(name = "my_data_insurance_basic_index_case1", columnList = "member_id")
+     *         }
+     * )
+     */
+    @Test
+    void generateDatabasesTableIndex() {
+        final String tableSchema = "bomapp_member";
+        final String tableNameRegex = "%my_data%";
+
+        final List<DatabaseSchemaTable> tables = this.tableRepository.findAllByTableSchemaAndTableNameLike(tableSchema, tableNameRegex);
+
+        assertThat(tables).isNotEmpty();
+
+        final StringBuilder builder = new StringBuilder();
+        tables.forEach(table -> {
+            final List<DatabaseSchemaStatistics> statisticsList = this.statisticsRepository.findAllByTableSchemaAndTableName(tableSchema, table.getTableName())
+                    .stream().filter(f -> !"PRIMARY".equals(f.getIndexName()))
+                    .collect(Collectors.toList());
+
+            if (CollectionUtils.isEmpty(statisticsList)) {
+                builder.append("@Table(name = \"").append(table.getTableName()).append("\")\n");
+            } else {
+                builder.append("@Table(name = \"").append(table.getTableName()).append("\",\n");
+
+                final List<DatabaseSchemaStatistics> statisticsUniqueList = statisticsList.stream()
+                        .filter(f -> 0 == f.getNonUnique())
+                        .collect(Collectors.toList());
+
+                final String uniqueConstraints = this.getUniqueConstraints(statisticsUniqueList);
+
+                final List<DatabaseSchemaStatistics> statisticsNonUniqueList = statisticsList.stream()
+                        .filter(f -> 1 == f.getNonUnique())
+                        .collect(Collectors.toList());
+
+                final String indexes = this.getIndexes(statisticsNonUniqueList);
+
+                if (StringUtils.hasText(uniqueConstraints) && StringUtils.hasText(indexes)) {
+                    builder.append(uniqueConstraints).append(",\n").append(indexes);
+                } else if (StringUtils.hasText(uniqueConstraints)) {
+                    builder.append(uniqueConstraints);
+                } else {
+                    builder.append(indexes);
+                }
+
+                builder.append("\n)\n");
+            }
+        });
+
+        log.info(builder.toString());
+    }
+
+    private String getUniqueConstraints(final List<DatabaseSchemaStatistics> statisticsList) {
+        if (CollectionUtils.isEmpty(statisticsList)) {
+            return null;
+        }
+
+        final StringBuilder builder = new StringBuilder();
+
+        builder.append("uniqueConstraints = {\n");
+        final List<String> uniqueConstraints = statisticsList.stream()
+                .collect(Collectors.groupingBy(DatabaseSchemaStatistics::getIndexName))
+                .entrySet().stream()
+                .map( groupData -> "@UniqueConstraint(name = \"" + groupData.getKey() + "\", columnNames = {" + groupData.getValue().stream().map(m -> "\"" + m.getColumnName() + "\"").collect(Collectors.joining(", ")) + "})")
+                .collect(Collectors.toList());
+
+        builder.append(String.join(", \n", uniqueConstraints));
+        builder.append("\n}");
+
+        return builder.toString();
+    }
+
+    private String getIndexes(final List<DatabaseSchemaStatistics> statisticsList) {
+        if (CollectionUtils.isEmpty(statisticsList)) {
+            return null;
+        }
+
+        final StringBuilder builder = new StringBuilder();
+
+        builder.append("indexes = {\n");
+        final List<String> indexes = statisticsList.stream()
+                .collect(Collectors.groupingBy(DatabaseSchemaStatistics::getIndexName))
+                .entrySet().stream()
+                .map( groupData -> "@Index(name = \"" + groupData.getKey() + "\", columnList = \"" + groupData.getValue().stream().map(DatabaseSchemaStatistics::getColumnName).collect(Collectors.joining(", ")) + "\")")
+                .collect(Collectors.toList());
+
+        builder.append(String.join(", \n", indexes));
+        builder.append("\n}");
+
+        return builder.toString();
     }
 }

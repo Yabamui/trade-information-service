@@ -51,7 +51,7 @@ class JsonToClassServiceTest {
     private static String getJsonObjectValue(final String className, final JsonObject jsonObject) {
         final StringBuilder classBuilder = new StringBuilder()
                 .append("\n")
-                .append("import com.google.gson.annotations.SerializedName;").append("\n")
+                .append("import com.fasterxml.jackson.annotation.JsonProperty;").append("\n")
                 .append("import lombok.*;").append("\n").append("\n")
                 .append("@Builder").append("\n")
                 .append("@Getter").append("\n")
@@ -73,7 +73,7 @@ class JsonToClassServiceTest {
     }
 
     private static String getJsonPrimitiveValue(final String key, final JsonElement jsonElement) {
-        final StringBuilder builder = new StringBuilder("@SerializedName(\"").append(key).append("\")\n").append("private final ");
+        final StringBuilder builder = new StringBuilder("@JsonProperty(\"").append(key).append("\")\n").append("private final ");
 
         if (jsonElement.isJsonNull()) {
             builder.append("String ");
@@ -93,7 +93,7 @@ class JsonToClassServiceTest {
     }
 
     private static String getJsonArrayValue(final String key, final JsonElement jsonElement) {
-        final StringBuilder builder = new StringBuilder("@SerializedName(\"").append(key).append("\")\n").append("private final List");
+        final StringBuilder builder = new StringBuilder("@JsonProperty(\"").append(key).append("\")\n").append("private final List");
 
         if (jsonElement.getAsJsonArray().size() == 0) {
             return builder.append(" ").append(key).append(";").toString();
@@ -121,19 +121,61 @@ class JsonToClassServiceTest {
     }
 
     private final static String REQUEST_JSON = "{\n" +
-            "  \"Dataset\": [{\"IndicatorCategoryCode\":\"SER_BATIS\",\"IndicatorCategory\":\"Balanced International Trade in Services EBOPS 2010 (2005-2019) - (Experimental data set)\",\"IndicatorCode\":\"BAT_BV_M\",\"Indicator\":\"Services imports: balanced values\",\"ReportingEconomyCode\":\"232\",\"ReportingEconomy\":\"Eritrea\",\"PartnerEconomyCode\":\"332\",\"PartnerEconomy\":\"Haiti\",\"ProductOrSectorClassificationCode\":\"BOP6\",\"ProductOrSectorClassification\":\"Services - Extended Balance of Payments Classification (EBOPS 2010)\",\"ProductOrSectorCode\":\"S\",\"ProductOrSector\":\"Memo item: Total services\",\"PeriodCode\":\"A\",\"Period\":\"Annual\",\"FrequencyCode\":\"A\",\"Frequency\":\"Annual\",\"UnitCode\":\"USM\",\"Unit\":\"Million US dollar\",\"Year\":2010,\"ValueFlagCode\":null,\"ValueFlag\":null,\"TextValue\":null,\"Value\":0.0}],\n" +
-            "  \"Summary\": [{\n" +
-            "  \"QueryParameters\": \"?dec=default&ps=all&max=1&spc=false&i=BAT_BV_M&fmt=json&off=0&p=default&head=H&mode=full&r=all&meta=true&lang=1\",\n" +
-            "  \"DataSet\": [\n" +
-            "    {\n" +
-            "      \"Name\": \"Data\",\n" +
-            "      \"Count\": 1,\n" +
-            "      \"TotalCount\": 10184190\n" +
-            "    }\n" +
-            "  ],\n" +
-            "  \"Started\": \"2021-08-24T11:10:11.3371553+02:00\",\n" +
-            "  \"Finished\": \"2021-08-24T11:10:13.9399973+02:00\",\n" +
-            "  \"DurationSeconds\": 2.6\n" +
-            "}]\n" +
+            "    \"ogCd\": \"B1AAAR0000\",\n" +
+            "    \"pdtNm\": \"스마트저축1.4(無)_적립_5년만기이상\",\n" +
+            "    \"isKdDvCd\": \"01\",\n" +
+            "    \"cnrSsCd\": \"02\",\n" +
+            "    \"rnwYn\": false,\n" +
+            "    \"cnrDt\": \"201509\",\n" +
+            "    \"expDt\": \"99991231\",\n" +
+            "    \"sbcAmt\": 10000000,\n" +
+            "    \"sbcAmtCucyCd\": \"KRW\",\n" +
+            "    \"vbIsYn\": false,\n" +
+            "    \"uvsIsYn\": false,\n" +
+            "    \"anBgnDt\": \"\",\n" +
+            "    \"anRecpCyc\": \"\",\n" +
+            "    \"lnExecPsPdtYn\": false,\n" +
+            "    \"prgNrt\": 0.0,\n" +
+            "    \"rdCtnRflnYn\": true,\n" +
+            "    \"svcTgtCmyCd\": \"BOMAPP\",\n" +
+            "    \"paPdDvCd\": \"02\",\n" +
+            "    \"paCycCd\": \"1M\",\n" +
+            "    \"ttPaUcn\": 240,\n" +
+            "    \"paEdDt\": \"20410705\",\n" +
+            "    \"paPrm\": 200000,\n" +
+            "    \"paPrmCucyCd\": \"KRW\",\n" +
+            "    \"isrCnt\": 1,\n" +
+            "    \"isrList\": [\n" +
+            "        {\n" +
+            "            \"isrSeq\": \"01\",\n" +
+            "            \"mnsrYn\": true,\n" +
+            "            \"cnrDtBsIsAe\": 37,\n" +
+            "            \"aeScList\": [\n" +
+            "                {\n" +
+            "                    \"cuBsIsAe\": 43,\n" +
+            "                    \"cuBsDt\": \"20210705\"\n" +
+            "                },\n" +
+            "                {\n" +
+            "                    \"cuBsIsAe\": 60,\n" +
+            "                    \"cuBsDt\": \"20370903\"\n" +
+            "                },\n" +
+            "                {\n" +
+            "                    \"cuBsIsAe\": 110,\n" +
+            "                    \"cuBsDt\": \"20870903\"\n" +
+            "                }\n" +
+            "            ],\n" +
+            "            \"scnList\": [\n" +
+            "                {\n" +
+            "                    \"scnSeq\": 1,\n" +
+            "                    \"scnNm\": \"스마트저축1.4(無)_적립\",\n" +
+            "                    \"scnSsCd\": \"02\",\n" +
+            "                    \"scnExpDt\": \"99991231\",\n" +
+            "                    \"scnSbcAmt\": 12000000,\n" +
+            "                    \"scnSbcAmtCucyCd\": \"KRW\",\n" +
+            "                    \"scnEssnYn\": true\n" +
+            "                }\n" +
+            "            ]\n" +
+            "        }\n" +
+            "    ]\n" +
             "}";
 }
